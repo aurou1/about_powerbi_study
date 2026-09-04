@@ -22,7 +22,7 @@
 | 目录 | 说明 |
 |---|---|
 | `powerbi-tutorial/` | **Power BI 零基础 → 进阶高手**，12 章，每章含示例 + 练习题（答案 + 解析 + 预期数字）。入口见 `powerbi-tutorial/README.md` |
-| `sql-tutorial/` | **SQL 零基础 → 进阶高手**，12 章（单表查询 → 过滤排序 → 聚合分组 → 多表 JOIN → 子查询/CTE → 窗口函数 → NULL 与执行顺序 → 数据操作 → 索引/EXPLAIN → 存储过程/触发器 → 事务/递归 CTE/综合实战），全部用同一套数据、数字实跑验证。入口见 `sql-tutorial/README.md` |
+| `sql-tutorial/` | **SQL 零基础 → 进阶高手**，15 章（12 章查询分析：单表查询 → 过滤排序 → 聚合分组 → 多表 JOIN → 子查询/CTE → 窗口函数 → NULL 与执行顺序 → 数据操作 → 索引/EXPLAIN → 存储过程/触发器 → 事务/递归 CTE/综合实战；+3 章工程管理：建表 DDL/约束/范式、视图与函数、账号权限与备份恢复），全部用同一套数据、数字实跑验证，含 B+树/连接算法/隔离级别 MVCC 等原理深挖。入口见 `sql-tutorial/README.md` |
 | `python-tutorial/` | **Python 零基础 → 精通**，14 章（环境/数据类型/字符串/列表字典/流程控制/函数/异常文件/模块/OOP/迭代器生成器 → pandas/连 MySQL/可视化导出/工程化），示例输出全部经本机 Python 3.13 + MySQL 实跑，ch13 数字与 SQL 教程逐项对拍。入口见 `python-tutorial/README.md` |
 | `dsa-tutorial/` | **数据结构与算法 从 0 基础到精通**，14 章（复杂度/数组字符串/链表/栈队列/哈希/递归分治/排序/二分/树/堆/图/动态规划/贪心回溯/综合实战），全部用 Python 3.13 标准库、示例输出实跑验证，结尾专设「与 FDE 岗结合」对照表。入口见 `dsa-tutorial/README.md` |
 

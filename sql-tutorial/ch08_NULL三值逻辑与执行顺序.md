@@ -43,6 +43,30 @@
 - `WHERE` 只保留**结果为 TRUE** 的行；UNKNOWN 和 FALSE 一样——**被排除**
 - 所以 `WHERE col = NULL` 永远取不到任何行（因为 `col = NULL` 是 UNKNOWN），正确写法是 `WHERE col IS NULL`
 
+### 🔍 原理深挖：三值逻辑的真值表（AND/OR/NOT）
+
+一个 NULL 掺进布尔运算，结果常常"出乎直觉"——背下这张表就不会被坑：
+
+```
+AND 真值表        TRUE   FALSE  UNKNOWN
+        TRUE      TRUE   FALSE  UNKNOWN
+        FALSE     FALSE  FALSE  FALSE
+        UNKNOWN   UNKNOWN FALSE  UNKNOWN
+
+OR 真值表         TRUE   FALSE  UNKNOWN
+        TRUE      TRUE   TRUE   TRUE
+        FALSE     TRUE   FALSE  UNKNOWN
+        UNKNOWN   TRUE   UNKNOWN UNKNOWN
+
+NOT:  NOT TRUE = FALSE | NOT FALSE = TRUE | NOT UNKNOWN = UNKNOWN
+
+直觉解释:
+  UNKNOWN AND FALSE = FALSE   → 一边确定是假, 整个就是假
+  UNKNOWN OR  TRUE  = TRUE    → 一边确定是真, 整个就是真
+  UNKNOWN AND TRUE  = UNKNOWN → 结果取决于那个"不知道", 仍是不知道
+```
+> 所以 `WHERE x > 5 OR x <= 5` 按理覆盖所有情况——**但当 x 是 NULL 时两条都 UNKNOWN，行还是被排除**！这就是为什么"补集查询"（NOT IN / NOT EXISTS）最容易漏 NULL 行（4.1 的 0 行事故）。**给列加 `NOT NULL` 约束（ch13）能从根上消灭一大半这种 bug。**
+
 ### 3.1 验证三值逻辑
 
 ```sql
@@ -138,6 +162,27 @@ SELECT COUNT(*) AS a, COUNT(order_profit) AS b FROM fact_order;
 8. LIMIT       -- 截取
 ```
 
+**配图理解（一条 SQL 的"流水线"，行数一路变少）：**
+
+```
+SELECT category, COUNT(*) AS 商品数 FROM dim_product
+WHERE brand <> '鲜踪' GROUP BY category HAVING COUNT(*) >= 5 ORDER BY 商品数 DESC LIMIT 3;
+
+① FROM dim_product          200 行(全部商品)
+      │
+② WHERE brand <> '鲜踪'     过滤 → 假设剩 190 行  ← 行级过滤先做, 少算后面
+      │
+③ GROUP BY category         分组 → 5 组(数码/食品/家居/服饰/美妆)
+      │
+④ HAVING COUNT(*)>=5        组级过滤 → 留下 ≥5 的组
+      │
+⑤ SELECT 聚合+起别名        算 COUNT(*) 生成"商品数"列
+      │
+⑥ ORDER BY 商品数 DESC      按别名排序
+      │
+⑦ LIMIT 3                  只取前3行 → 输出
+```
+
 **两条由此而来的铁律**：
 
 1. **`WHERE` 里不能用 `SELECT` 起的别名**——因为 WHERE（第 3 步）跑在 SELECT（第 6 步）之前，别名还没出生。
@@ -148,6 +193,8 @@ SELECT COUNT(*) AS a, COUNT(order_profit) AS b FROM fact_order;
    -- 改成：WHERE SUM(line_amount) > 1000000 也不行（WHERE 在聚合前）→ 用 HAVING
    ```
 2. **`ORDER BY` 能用别名**，也能用窗口函数结果（窗口函数在 SELECT 阶段算完）。
+
+3. **窗口函数在 WHERE/GROUP 之后、SELECT 之前算**（ch06 深挖）——所以想按 `ROW_NUMBER` 结果过滤必须包一层子查询。
 
 ---
 

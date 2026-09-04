@@ -41,6 +41,27 @@
 
 我们这章用「BEGIN → 改 → 看 → ROLLBACK」的**沙盘模式**练手，确认无误才把 ROLLBACK 换成 COMMIT。
 
+### 🔍 原理深挖：UPDATE/DELETE 是怎么"安全回滚"的？（undo log）
+
+为什么 `ROLLBACK` 能让改过的数据回到原样？靠的是 InnoDB 的 **undo log（回滚日志）**——每次修改前先记下"旧值"：
+
+```
+UPDATE dim_customer SET tier='钻石' WHERE customer_id=1;
+  ① 先把旧值('普通')写进 undo log     ← 内存/日志
+  ② 再改数据页: 1 的 tier → '钻石'
+  ③ COMMIT → undo log 标记可清理(不再需要回滚)
+  如果中途 ROLLBACK → 拿 undo log 里的旧值把 1 改回 '普通' ✅
+
+图形:
+   事务开始 ──▶ 记undo(旧值) ──▶ 改数据页 ──▶ COMMIT(丢弃undo)
+                         │
+                         └─ ROLLBACK时: 用undo旧值覆盖回来 ──▶ 还原
+
+INSERT 的 undo = 记"这行要删"; DELETE 的 undo = 记"这行原样"(可恢复)
+```
+
+> 这就是为什么 DML 后立刻 `SELECT` 能看到新值、`ROLLBACK` 又能还原——ch12 的 MVCC 快照读、事务回滚全靠这份 undo log。**别在生产裸跑不带 WHERE 的 UPDATE/DELETE**——就算有 undo，回滚也要时间，而事故现场往往等不起。
+
 ---
 
 ## 四、实操：三类 DML + 安全演示

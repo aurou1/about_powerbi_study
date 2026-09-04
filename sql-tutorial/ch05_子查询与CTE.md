@@ -38,6 +38,40 @@ ch04 的多表 JOIN 解决「跨表取数」，但有些问题本质是**嵌套�
 
 > CTE（`WITH x AS (...) SELECT ... FROM x`）本质也是「FROM 里的派生表」，但**先命名、后引用**，可读性远好于嵌套 `(SELECT ...)`。
 
+### 🔍 原理深挖：子查询/CTE 到底"先算哪个"？（执行顺序）
+
+按出现位置不同，子查询的执行时机也不同——这是理解子查询性能的关键：
+
+```
+① WHERE 里的非关联子查询 → 先算一次, 结果当"常量集合"给外层用
+   SELECT * FROM fact_order WHERE customer_id IN (SELECT customer_id FROM ...)
+   执行: 先跑内层 → 得到一组客户ID → 外层拿这组值过滤
+   (MySQL 可能物化成临时表或直接半连接, 但语义上"先内后外")
+
+② SELECT/FROM 里的子查询/CTE → 类似"先建临时表", 再查它
+   WITH 大区销售 AS (SELECT ... GROUP BY ...) SELECT * FROM 大区销售
+   → CTE 像先算好一张中间表(MySQL 8 可能把它内联进主查询, 不影响语义)
+
+③ 关联子查询(内层引用外层列) → 外层每行, 内层都跑一次!
+   SELECT ... FROM dim_customer c
+   WHERE EXISTS (SELECT 1 FROM fact_order o WHERE o.customer_id = c.customer_id)
+   执行: 外层取一行 c → 内层按 c.customer_id 查一次 → 有则保留
+         外层 500 个客户 → 内层最多跑 500 次!
+   → 关联子查询务必让内层连接列有索引, 否则 = 500 次全表扫
+```
+
+**图示（关联子查询的"外层驱动内层"）：**
+```
+外层 500 客户
+ c1 ──▶ 内层: 查 o.customer_id=c1 有单吗? → 有→保留
+ c2 ──▶ 内层: 查 o.customer_id=c2 有单吗? → 有→保留
+ c3 ──▶ 内层: 查 o.customer_id=c3 有单吗? → 无→丢弃(0单客户)
+ ...
+内层查了 500 次 → 每次走 idx_cust 索引才快(ch10 教你怎么验证)
+```
+
+> 记忆：**非关联子查询 = 先算好给你用；关联子查询 = 你走一步它算一次**。`NOT EXISTS` 替代 `NOT IN`（ch08）之所以安全又常更快，正是因为 EXISTS 是"逐行探针"，天然不踩 NULL。
+
 ---
 
 ## 四、实操：四类子查询 + CTE
