@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 生成 Power BI + SQL 学习用 MySQL 演示库
-库名: study_powerbi_demodata  (电商订单星型模型, 约 1.4 万行)
+库名: study_powerbi_demodata  (电商订单星型模型, 共 15,780 行 = 维度 1,806 + 事实 11,974)
 环境: MySQL 8.0 / utf8mb4 / InnoDB
 依赖: pymysql  (pip install pymysql)
 
