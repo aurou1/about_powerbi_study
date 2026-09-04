@@ -1,6 +1,6 @@
 # Power BI + SQL 学习练习清单
 
-配套数据库：`study_powerbi_demodata`（MySQL 8.0，共 **15,780** 行 = 维度 1,806 + 事实 11,974）
+配套数据库：`study_powerbi_demodata`（MySQL 8.0，共 **13,780** 行 = 维度 1,806 + 事实 11,974）
 生成脚本：`generate_powerbi_demo.py`（重跑即重建，数据可复现）
 
 ## 一、库结构速览（星型模型）
